@@ -16,10 +16,6 @@ def setup_driver():
     chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
     chrome_options.add_experimental_option('useAutomationExtension', False)
 
-    # Create a unique user data directory for each session
-    user_data_dir = os.path.join(tempfile.gettempdir(), f"chrome_profile_{random.randint(100000, 999999)}")
-    chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
-
     # Additional options to prevent detection
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
