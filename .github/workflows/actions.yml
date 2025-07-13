@@ -2,7 +2,7 @@ name: run app.py
 
 on:
   schedule:
-    - cron: '0 11 * * *'  # Runs daily at 11:00 UTC
+    - cron: '40 15 * * *'  # Runs daily at 11:00 UTC
 
 jobs:
   run-script:
