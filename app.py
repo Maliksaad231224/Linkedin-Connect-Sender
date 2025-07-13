@@ -6,6 +6,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
 import random
+import tempfile
+import os
 
 # Initialize browser with anti-detection settings
 def setup_driver():
@@ -13,6 +15,15 @@ def setup_driver():
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
     chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
     chrome_options.add_experimental_option('useAutomationExtension', False)
+    
+    # Create a unique user data directory for each session
+    user_data_dir = os.path.join(tempfile.gettempdir(), f"chrome_profile_{random.randint(100000, 999999)}")
+    chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
+    
+    # Additional options to prevent detection
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument('--disable-gpu')
     
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
@@ -32,7 +43,7 @@ def linkedin_connect_bot():
         # Add your li_at cookie here (replace with your actual cookie)
         li_at_cookie = {
             'name': 'li_at',
-            'value': 'AQEDAQBZP4AADziKAAABl_izDHYAAAGYHL-Qdk4ATzo9b7sAXGHNP11cfiManyyvo9oCH71GteGWkspM7WHhXpR1c7xPur_QpOlR73w2kheZDf2ytlu4eqO9hMkMNP7aF5E7KpnmDDfhVIpyDBx7AnvQ',  # Replace with your actual li_at cookie
+            'value': 'AQEDAQBZP4AADziKAAABl_izDHYAAAGYHL-Qdk4ATzo9b7sAXGHNP11cfiManyyvo9oCH71GteGWkspM7WHhXpR1c7xPur_QpOlR73w2kheZDf2ytlu4eqO9hMkMNP7aF5E7KpnmDDfhVIpyDBx7AnvQ' # Replace with your actual li_at cookie
             'domain': '.linkedin.com'
         }
         
@@ -161,7 +172,8 @@ def linkedin_connect_bot():
     except Exception as e:
         print(f"Fatal error: {str(e)}")
         # Save screenshot for debugging
-
+        driver.save_screenshot('error.png')
+        print("Saved screenshot as error.png")
     
     finally:
         print(f"\nFinished. Sent {connection_count} connection requests")
