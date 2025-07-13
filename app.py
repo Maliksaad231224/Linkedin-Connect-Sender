@@ -47,8 +47,7 @@ def linkedin_connect_bot():
         # Add cookie (replace with your actual li_at cookie)
         li_at_cookie = {
             'name': 'li_at',
-            'value': 'AQEDAQBZP4AADziKAAABl_izDHYAAAGYHL-Qdk4ATzo9b7sAXGHNP11cfiManyyvo9oCH71GteGWkspM7WHhXpR1c7xPur_QpOlR73w2kheZDf2ytlu4eqO9hMkMNP7aF5E7KpnmDDfhVIpyDBx7AnvQ',  # 
-            'domain': '.linkedin.com'
+            'value': 'AQEDAQBZP4AADziKAAABl_izDHYAAAGYHL-Qdk4ATzo9b7sAXGHNP11cfiManyyvo9oCH71GteGWkspM7WHhXpR1c7xPur_QpOlR73w2kheZDf2ytlu4eqO9hMkMNP7aF5E7KpnmDDfhVIpyDBx7AnvQ',         'domain': '.linkedin.com'
         }
         
         driver.add_cookie(li_at_cookie)
@@ -127,7 +126,8 @@ def linkedin_connect_bot():
     except Exception as e:
         print(f"Error occurred: {str(e)}")
         if driver:
-         
+    
+            print("Saved screenshot as error.png")
     finally:
         if driver:
             print(f"\nFinished. Sent {connection_count} connection requests")
