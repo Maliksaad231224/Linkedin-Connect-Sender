@@ -1,139 +1,171 @@
 from selenium import webdriver
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-import json
 import time
 import random
-import os
-from datetime import datetime
 
-# Configuration
-CONFIG = {
-    "li_at_cookie": "YOUR_LI_AT_COOKIE_HERE",
-    "message": "Hi {name}, thanks for connecting! I'd love to learn more about your work in {industry}.",
-    "data_file": "linkedin_connections.json",
-    "daily_message_limit": 20
-}
+# Initialize browser with anti-detection settings
+def setup_driver():
+    chrome_options = webdriver.ChromeOptions()
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    chrome_options.add_experimental_option('useAutomationExtension', False)
+    
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    driver.maximize_window()
+    return driver
 
-class ConnectionAcceptorBot:
-    def __init__(self):
-        self.driver = self.setup_driver()
-        self.connections = self.load_connections()
 
-    def setup_driver(self):
-        options = webdriver.ChromeOptions()
-        options.add_argument("--disable-blink-features=AutomationControlled")
-        driver = webdriver.Chrome(options=options)
-        driver.maximize_window()
-        return driver
-
-    def load_connections(self):
-        if os.path.exists(CONFIG["data_file"]):
-            with open(CONFIG["data_file"], "r") as f:
-                return json.load(f)
-        return {}
-
-    def save_connections(self):
-        with open(CONFIG["data_file"], "w") as f:
-            json.dump(self.connections, f, indent=2)
-
-    def login(self):
-        self.driver.get("https://www.linkedin.com")
-        self.driver.add_cookie({
+# Main function
+def linkedin_connect_bot():
+    driver = setup_driver()
+    
+    try:
+        # 1. Login using li_at cookie
+        print("Logging in to LinkedIn using cookie...")
+        driver.get("https://www.linkedin.com")
+        
+        # Add your li_at cookie here (replace with your actual cookie)
+        li_at_cookie = {
             'name': 'li_at',
-            'value': CONFIG["li_at_cookie"],
+            'value': 'AQEDAQBZP4AADziKAAABl_izDHYAAAGYHL-Qdk4ATzo9b7sAXGHNP11cfiManyyvo9oCH71GteGWkspM7WHhXpR1c7xPur_QpOlR73w2kheZDf2ytlu4eqO9hMkMNP7aF5E7KpnmDDfhVIpyDBx7AnvQ',  # Replace with your actual li_at cookie
             'domain': '.linkedin.com'
-        })
-        self.driver.refresh()
-        WebDriverWait(self.driver, 15).until(
+        }
+        
+        driver.add_cookie(li_at_cookie)
+        
+        # Refresh to apply cookie
+        driver.get("https://www.linkedin.com")
+        time.sleep(random.uniform(2, 4))
+        
+        # Verify login
+        WebDriverWait(driver, 20).until(
             EC.presence_of_element_located((By.CLASS_NAME, "global-nav__me")))
-
-    def check_new_acceptances(self):
-        """Check connections page for new acceptances"""
-        print("\n🔍 Checking for new connection acceptances...")
-        self.driver.get("https://www.linkedin.com/mynetwork/invite-connect/connections/")
+        print("Login successful")
+        
+        # 2. Search for profiles
+        print("Searching for profiles...")
+        search_term = "Family Office"  # Your search term
+        driver.get(f"https://www.linkedin.com/search/results/people/?keywords={search_term.replace(' ', '%20')}")
         time.sleep(random.uniform(3, 5))
-
-        # Scroll to load all connections
-        last_height = self.driver.execute_script("return document.body.scrollHeight")
-        while True:
-            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            time.sleep(random.uniform(2, 3))
-            new_height = self.driver.execute_script("return document.body.scrollHeight")
-            if new_height == last_height:
-                break
-            last_height = new_height
-
-        # Get all current connections
-        current_connects = set()
-        for element in self.driver.find_elements(By.CSS_SELECTOR, ".mn-connection-card a.mn-connection-card__link"):
-            profile_url = element.get_attribute("href").split('?')[0]
-            current_connects.add(profile_url)
-
-        # Update status for any new acceptances
-        updated = False
-        for profile_url in list(self.connections.keys()):
-            if (not self.connections[profile_url]["accepted"] 
-                and profile_url in current_connects):
-                
-                self.connections[profile_url]["accepted"] = True
-                self.connections[profile_url]["date_accepted"] = datetime.now().strftime("%Y-%m-%d")
-                print(f"🎉 New acceptance: {self.connections[profile_url]['name']}")
-                updated = True
-
-        if updated:
-            self.save_connections()
-
-    def send_followups(self):
-        """Send messages to newly accepted connections"""
-        print("\n📩 Sending follow-up messages...")
-        messages_sent = 0
-
-        for profile_url, data in self.connections.items():
-            if (data["accepted"] 
-                and not data["message_sent"] 
-                and messages_sent < CONFIG["daily_message_limit"]):
-                
+        
+        # 3. Send connection requests
+        connection_count = 0
+        max_connections = 10
+        page_count = 0
+        max_pages = 5
+        
+        while connection_count < max_connections and page_count < max_pages:
+            print(f"\nProcessing page {page_count + 1}...")
+            
+            # Scroll to load more results
+            driver.execute_script("window.scrollTo(0, document.body.scrollHeight * 0.8);")
+            time.sleep(random.uniform(2, 4))
+            
+            # Find all Connect buttons using multiple selector strategies
+            connect_selectors = [
+                "//button[.//span[text()='Connect']]",
+                "//button[contains(@aria-label, 'Connect')]",
+                "button[data-control-name='connect']"
+            ]
+            
+            connect_buttons = []
+            for selector in connect_selectors:
                 try:
-                    self.driver.get(f"{profile_url}?greeting=1")
-                    time.sleep(random.uniform(3, 5))
-
-                    message_box = WebDriverWait(self.driver, 10).until(
-                        EC.presence_of_element_located((By.CLASS_NAME, "msg-form__contenteditable")))
-                    
-                    msg = CONFIG["message"].format(
-                        name=data["name"].split()[0],
-                        industry=data.get("keyword", "your industry")
-                    )
-                    message_box.send_keys(msg)
-                    time.sleep(1)
-                    self.driver.find_element(By.XPATH, "//button[@type='submit']").click()
-                    
-                    self.connections[profile_url]["message_sent"] = True
-                    messages_sent += 1
-                    print(f"✉️ Sent to {data['name']}")
-                    time.sleep(random.uniform(10, 15))
-
-                except Exception as e:
-                    print(f"⚠️ Failed to message {data['name']}: {str(e)}")
+                    if selector.startswith("//"):
+                        connect_buttons = driver.find_elements(By.XPATH, selector)
+                    else:
+                        connect_buttons = driver.find_elements(By.CSS_SELECTOR, selector)
+                    if connect_buttons:
+                        break
+                except:
                     continue
+            
+            print(f"Found {len(connect_buttons)} connect buttons")
+            
+            for button in connect_buttons:
+                if connection_count >= max_connections:
+                    break
+                    
+                try:
+                    # Scroll to button properly
+                    driver.execute_script("arguments[0].scrollIntoView({block: 'center', behavior: 'smooth'});", button)
+                    time.sleep(random.uniform(1, 2))
+                    
+                    # Wait until clickable
+                    WebDriverWait(driver, 10).until(EC.element_to_be_clickable(button))
+                    
+                    # Try normal click first, fallback to JS click
+                    try:
+                        button.click()
+                    except:
+                        driver.execute_script("arguments[0].click();", button)
+                        
+                    time.sleep(random.uniform(1, 2))
+                    try:
+                        send_selectors = [
+                            "//button[.//span[text()='Send']]",
+                            "button[aria-label='Send now']",
+                            "//button[.//span[text()='Send without a note']]",
+                            "button[aria-label='Send without a note']"
+                        ]
+                        
+                        for selector in send_selectors:
+                            try:
+                                by = By.XPATH if selector.startswith("//") else By.CSS_SELECTOR
+                                send_button = WebDriverWait(driver, 5).until(
+                                    EC.element_to_be_clickable((by, selector))
+                                )
+                                send_button.click()
+                                connection_count += 1
+                                print(f"Sent connection {connection_count}/{max_connections}")
+                                time.sleep(random.uniform(3, 6))  # Random delay
+                                break
+                            except:
+                                continue
+                        else:
+                            print("Couldn't find send button - may already be connected")
+                            raise Exception("Send button not found")
 
-        if messages_sent > 0:
-            self.save_connections()
+                            
+                    except Exception as e:
+                        print(f"Error sending invitation: {str(e)}")
+                        try:
+                            cancel_button = WebDriverWait(driver, 3).until(
+                                EC.element_to_be_clickable((By.XPATH, "//button[.//span[text()='Cancel']]")))
+                            cancel_button.click()
+                        except:
+                            pass
+                        continue
+                        
+                except Exception as e:
+                    print(f"Error with Connect button: {str(e)}")
+                    continue
+            
+            # Go to next page if needed
+            if connection_count < max_connections:
+                try:
+                    next_button = WebDriverWait(driver, 5).until(
+                        EC.element_to_be_clickable((By.XPATH, "//button[@aria-label='Next']")))
+                    next_button.click()
+                    page_count += 1
+                    time.sleep(random.uniform(4, 7))  # Longer delay between pages
+                except:
+                    print("No more pages available or next button not found")
+                    break
+    
+    except Exception as e:
+        print(f"Fatal error: {str(e)}")
+        # Save screenshot for debugging
 
-    def run(self):
-        try:
-            self.login()
-            self.check_new_acceptances()
-            self.send_followups()
-        except Exception as e:
-            print(f"❌ Error: {str(e)}")
-            self.driver.save_screenshot('error.png')
-        finally:
-            self.driver.quit()
-            print("\n🏁 Follow-up bot completed!")
+    
+    finally:
+        print(f"\nFinished. Sent {connection_count} connection requests")
+        driver.quit()
 
 if __name__ == "__main__":
-    bot = ConnectionAcceptorBot()
-    bot.run() 
+    linkedin_connect_bot()
