@@ -14,15 +14,15 @@ def setup_driver():
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
     chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
     chrome_options.add_experimental_option('useAutomationExtension', False)
-    
-    # Stability options
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
     chrome_options.add_argument('--headless=new')
+    
     # Disable user data directory completely
     chrome_options.add_argument('--disable-application-cache')
     chrome_options.add_argument('--disable-extensions')
     chrome_options.add_argument('--disable-default-apps')
+    chrome_options.add_argument('--incognito')  # Add incognito mode
     
     # Configure service
     service = Service(ChromeDriverManager().install())
