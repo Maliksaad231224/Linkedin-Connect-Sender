@@ -18,7 +18,7 @@ def setup_driver():
     # Stability options
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
-    
+    chrome_options.add_argument('--headless=new')
     # Disable user data directory completely
     chrome_options.add_argument('--disable-application-cache')
     chrome_options.add_argument('--disable-extensions')
@@ -43,7 +43,7 @@ def linkedin_connect_bot():
         # 1. Login using cookie
         print("Logging in to LinkedIn...")
         driver.get("https://www.linkedin.com")
-        
+        time.sleep(2) 
         # Add cookie (replace with your actual li_at cookie)
         li_at_cookie = {
             'name': 'li_at',
@@ -51,6 +51,7 @@ def linkedin_connect_bot():
         }
         
         driver.add_cookie(li_at_cookie)
+        driver.get("https://www.linkedin.com/feed/")
         driver.refresh()
         time.sleep(random.uniform(2, 4))
         
