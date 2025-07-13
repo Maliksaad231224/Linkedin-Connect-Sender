@@ -25,4 +25,4 @@ jobs:
       - name: Execute Python script
         env:
           SOME_SECRET: ${{ secrets.SOME_SECRET }}
-        run: python app.py
+        run: python main.py
