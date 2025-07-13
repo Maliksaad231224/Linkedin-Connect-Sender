@@ -15,16 +15,16 @@ def setup_driver():
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
     chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
     chrome_options.add_experimental_option('useAutomationExtension', False)
-    
+
     # Create a unique user data directory for each session
     user_data_dir = os.path.join(tempfile.gettempdir(), f"chrome_profile_{random.randint(100000, 999999)}")
     chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
-    
+
     # Additional options to prevent detection
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
     chrome_options.add_argument('--disable-gpu')
-    
+
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.maximize_window()
@@ -34,56 +34,55 @@ def setup_driver():
 # Main function
 def linkedin_connect_bot():
     driver = setup_driver()
-    
+
     try:
         # 1. Login using li_at cookie
         print("Logging in to LinkedIn using cookie...")
         driver.get("https://www.linkedin.com")
-        
+
         # Add your li_at cookie here (replace with your actual cookie)
         li_at_cookie = {
             'name': 'li_at',
-            'value': 'AQEDAQBZP4AADziKAAABl_izDHYAAAGYHL-Qdk4ATzo9b7sAXGHNP11cfiManyyvo9oCH71GteGWkspM7WHhXpR1c7xPur_QpOlR73w2kheZDf2ytlu4eqO9hMkMNP7aF5E7KpnmDDfhVIpyDBx7AnvQ' # Replace with your actual li_at cookie
+            'value': 'AQEDAQBZP4AADziKAAABl_izDHYAAAGYHL-Qdk4ATzo9b7sAXGHNP11cfiManyyvo9oCH71GteGWkspM7WHhXpR1c7xPur_QpOlR73w2kheZDf2ytlu4eqO9hMkMNP7aF5E7KpnmDDfhVIpyDBx7AnvQ',  # Replace with your actual li_at cookie
             'domain': '.linkedin.com'
         }
-        
+
         driver.add_cookie(li_at_cookie)
-        
+
         # Refresh to apply cookie
         driver.get("https://www.linkedin.com")
         time.sleep(random.uniform(2, 4))
-        
+
         # Verify login
         WebDriverWait(driver, 20).until(
             EC.presence_of_element_located((By.CLASS_NAME, "global-nav__me")))
         print("Login successful")
-        
+
         # 2. Search for profiles
         print("Searching for profiles...")
         search_term = "Family Office"  # Your search term
         driver.get(f"https://www.linkedin.com/search/results/people/?keywords={search_term.replace(' ', '%20')}")
         time.sleep(random.uniform(3, 5))
-        
+
         # 3. Send connection requests
         connection_count = 0
-        max_connections = 10
+        max_connections = 3
         page_count = 0
-        max_pages = 5
-        
+        max_pages = 10
         while connection_count < max_connections and page_count < max_pages:
             print(f"\nProcessing page {page_count + 1}...")
-            
+
             # Scroll to load more results
             driver.execute_script("window.scrollTo(0, document.body.scrollHeight * 0.8);")
             time.sleep(random.uniform(2, 4))
-            
+
             # Find all Connect buttons using multiple selector strategies
             connect_selectors = [
                 "//button[.//span[text()='Connect']]",
                 "//button[contains(@aria-label, 'Connect')]",
                 "button[data-control-name='connect']"
             ]
-            
+
             connect_buttons = []
             for selector in connect_selectors:
                 try:
@@ -95,27 +94,27 @@ def linkedin_connect_bot():
                         break
                 except:
                     continue
-            
+
             print(f"Found {len(connect_buttons)} connect buttons")
-            
+
             for button in connect_buttons:
                 if connection_count >= max_connections:
                     break
-                    
+
                 try:
                     # Scroll to button properly
                     driver.execute_script("arguments[0].scrollIntoView({block: 'center', behavior: 'smooth'});", button)
                     time.sleep(random.uniform(1, 2))
-                    
+
                     # Wait until clickable
                     WebDriverWait(driver, 10).until(EC.element_to_be_clickable(button))
-                    
+
                     # Try normal click first, fallback to JS click
                     try:
                         button.click()
                     except:
                         driver.execute_script("arguments[0].click();", button)
-                        
+
                     time.sleep(random.uniform(1, 2))
                     try:
                         send_selectors = [
@@ -124,7 +123,7 @@ def linkedin_connect_bot():
                             "//button[.//span[text()='Send without a note']]",
                             "button[aria-label='Send without a note']"
                         ]
-                        
+
                         for selector in send_selectors:
                             try:
                                 by = By.XPATH if selector.startswith("//") else By.CSS_SELECTOR
@@ -142,7 +141,7 @@ def linkedin_connect_bot():
                             print("Couldn't find send button - may already be connected")
                             raise Exception("Send button not found")
 
-                            
+
                     except Exception as e:
                         print(f"Error sending invitation: {str(e)}")
                         try:
@@ -152,11 +151,11 @@ def linkedin_connect_bot():
                         except:
                             pass
                         continue
-                        
+
                 except Exception as e:
                     print(f"Error with Connect button: {str(e)}")
                     continue
-            
+
             # Go to next page if needed
             if connection_count < max_connections:
                 try:
@@ -168,13 +167,11 @@ def linkedin_connect_bot():
                 except:
                     print("No more pages available or next button not found")
                     break
-    
+
     except Exception as e:
         print(f"Fatal error: {str(e)}")
         # Save screenshot for debugging
-        driver.save_screenshot('error.png')
-        print("Saved screenshot as error.png")
-    
+   
     finally:
         print(f"\nFinished. Sent {connection_count} connection requests")
         driver.quit()
