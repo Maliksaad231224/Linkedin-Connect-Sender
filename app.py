@@ -29,7 +29,7 @@ def setup_driver():
     
     try:
         driver = webdriver.Chrome(service=service, options=chrome_options)
-        driver.maximize_window()
+        driver.set_window_size(1920, 1080) 
         return driver
     except Exception as e:
         print(f"Error initializing driver: {str(e)}")
