@@ -176,7 +176,7 @@ def linkedin_connect_bot():
         print("Saved screenshot as error.png")
 
     finally:
-        print(f"\nFinished. Sent {connection_count} connection requests")
+
         driver.quit()
 
 if __name__ == "__main__":
